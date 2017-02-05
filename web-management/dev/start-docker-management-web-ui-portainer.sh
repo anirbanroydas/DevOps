@@ -32,7 +32,7 @@ echo "Active Node : $(docker-machine active)"
 # first check if the service is already running or not
 # if running then move on, otherwise create the service
 echo "First, checking if service is already running or not..."
-docker service ps -f "desired-state=running" "$DOCKER_MANAGEMENT_WEB_UI_SERVICE_NAME"
+docker service ps -f "desired-state=running" "$DOCKER_MANAGEMENT_WEB_UI_SERVICE_NAME" > /dev/null 2>&1
 if [ $? -eq 0 ];
 then
 	# service is already running
@@ -41,7 +41,7 @@ else
 	# check if service is shutdown or not, if shutdown rm the service and then start
 	# otherwise it may give duplicate service error (possible)
 	echo "Docker Management Web Ui service is not running, check if the service is shutdown"
-	docker service ps -f "desired-state=shutdown" "$DOCKER_MANAGEMENT_WEB_UI_SERVICE_NAME"
+	docker service ps -f "desired-state=shutdown" "$DOCKER_MANAGEMENT_WEB_UI_SERVICE_NAME" > /dev/null 2>&1
 	if [ $? -eq 0 ];
 	then
 		# service is shutdown and hence exists, remove servcie and recreate
