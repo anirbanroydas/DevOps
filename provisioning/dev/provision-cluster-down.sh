@@ -12,7 +12,7 @@ CLUSTER_NAMES=('nightswatch-manager' 'lannisters-worker' 'starks-worker' 'dothra
 for i in $(seq 0 $((CLUSTER_SIZE-1)));
 do
 	echo "stopping node : ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))..."
-	docker-machine stop "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" 2>1 1> /dev/null
+	docker-machine stop "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" > /dev/null 2>&1
 	echo "node stopped succesfully"
 done
 
