@@ -12,7 +12,7 @@ CLUSTER_NAMES=('nightswatch-manager' 'lannisters-worker' 'starks-worker' 'dothra
 
 # create default machine firs if not exists
 echo "Checking if default docker machine exists or not..."
-docker-machine ls -q | grep -w "default" 1>2
+docker-machine ls -q | grep -w "default" 1>2 2> /dev/null
 if [ $? -ne 0 ];
 then
 	# create the default machine first
@@ -27,7 +27,7 @@ then
 else
 	echo "default machine already exists"
 	echo "checking machine status, stop if currently running, otherwise move forward"
-	docker-machine status default | grep -w "Running" 1>2
+	docker-machine status default | grep -w "Running" 1>2 2> /dev/null
 	if [ $? -eq 0 ];
 	then
 		# stop the running defautl machine
@@ -53,7 +53,7 @@ do
 
 	# create the the swarm nodes
 	echo "Checking if Swarm ${NODE_TYPE} Node - ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1)) exists or not..."
-	docker-machine ls -q | grep -w "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" 1>2
+	docker-machine ls -q | grep -w "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" 1>2 2> /dev/null
 	if [ $? -ne 0 ];
 	then
 		# create the swarm node
@@ -64,10 +64,10 @@ do
 	else
 		echo "Swarm ${NODE_TYPE} Node - ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))  already exists"
 		echo "checking machine status, start if currently stopped, otherwise move forward"
-		docker-machine status "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" | grep -w "Stopped" 1>2
+		docker-machine status "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" | grep -w "Stopped" 1>2 2> /dev/null
 		if [ $? -eq 0 ];
 		then
-			# stop the running defautl machine
+			# start the stopped cluster node machine
 			echo "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1)) machine is Stopped, hence starting..."
 			docker-machine start "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))"
 			echo "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1)) machine started Successfully"
