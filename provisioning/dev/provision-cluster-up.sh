@@ -135,6 +135,8 @@ do
 
 done
 
+
+echo "Dns management for all the nodes is the swarm"
 # add dns nameservers pointing to google nameservers in /etc/resolv.conf due to a bug/error
 # whcih does not allow to pull images from docker registry (using docker version 1.13.0)
 for i in $(seq 0 $((CLUSTER_SIZE-1)));
