@@ -12,7 +12,7 @@ CLUSTER_NAMES=('nightswatch-manager' 'lannisters-worker' 'starks-worker' 'dothra
 
 # create default machine firs if not exists
 echo "Checking if default docker machine exists or not..."
-docker-machine ls -q | grep -w "default" 1>2 2> /dev/null
+docker-machine ls -q | grep -w "default" > /dev/null 2>&1
 if [ $? -ne 0 ];
 then
 	# create the default machine first
@@ -27,7 +27,7 @@ then
 else
 	echo "default machine already exists"
 	echo "checking machine status, stop if currently running, otherwise move forward"
-	docker-machine status default | grep -w "Running" 1>2 2> /dev/null
+	docker-machine status default | grep -w "Running" > /dev/null 2>&1
 	if [ $? -eq 0 ];
 	then
 		# stop the running defautl machine
@@ -53,7 +53,7 @@ do
 
 	# create the the swarm nodes
 	echo "Checking if Swarm ${NODE_TYPE} Node - ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1)) exists or not..."
-	docker-machine ls -q | grep -w "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" 1>2 2> /dev/null
+	docker-machine ls -q | grep -w "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" > /dev/null 2>&1
 	if [ $? -ne 0 ];
 	then
 		# create the swarm node
@@ -64,7 +64,7 @@ do
 	else
 		echo "Swarm ${NODE_TYPE} Node - ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))  already exists"
 		echo "checking machine status, start if currently stopped, otherwise move forward"
-		docker-machine status "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" | grep -w "Stopped" 1>2 2> /dev/null
+		docker-machine status "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" | grep -w "Stopped" > /dev/null 2>&1
 		if [ $? -eq 0 ];
 		then
 			# start the stopped cluster node machine
@@ -135,6 +135,19 @@ do
 
 done
 
+# add dns nameservers pointing to google nameservers in /etc/resolv.conf due to a bug/error
+# whcih does not allow to pull images from docker registry (using docker version 1.13.0)
+for i in $(seq 0 $((CLUSTER_SIZE-1)));
+do
+
+	echo "adding dns entry to /etc/resolv.conf for swarm node : ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))"
+	docker-machine ssh "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" \
+	'echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo  cat - /etc/resolv.conf > /tmp/out_etc_resolv \
+	&&  sudo mv /tmp/out_etc_resolv  /etc/resolv.conf \
+	&& sudo rm -f /tmp/out_etc_resolv >/dev/null 2>&1 &'
+	echo "dns entry added successfully for ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))"
+
+done
 
 echo "Current Swarm Nodes:"
 docker node ls
