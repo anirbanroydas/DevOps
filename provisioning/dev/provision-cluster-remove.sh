@@ -13,7 +13,7 @@ for i in $(seq 0 $((CLUSTER_SIZE-1)));
 do
 	echo "stopping and removing node : ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))..."
 	docker-machine stop "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" > /dev/null 2>&1
-	docker-machine rm "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" > /dev/null 2>&1
+	docker-machine rm  -y "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" > /dev/null 2>&1
 	echo "node stopped and removed succesfully"
 done
 
