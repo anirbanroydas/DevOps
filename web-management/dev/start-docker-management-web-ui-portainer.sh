@@ -69,7 +69,7 @@ else
 fi
 
 
-echo "Docker Manager Web Ui - Portaine started successfully"
+echo "Docker Manager Web Ui - Portainer started successfully"
 
 
 # --mount=type=bind,src=/Users/Roy/Documents/Github/sources/public/DevOps/web-management/dev/portainer-data,dst=/data \   	
