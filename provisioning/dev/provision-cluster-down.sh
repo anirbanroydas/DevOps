@@ -1,19 +1,28 @@
 #!/bin/bash
 
-[ -z "$CLUSTER_SIZE" ] &&  CLUSTER_SIZE=3
-echo "Cluser Size: ${CLUSTER_SIZE}"
-
-ENVIRONMENT="dev"
-
-CLUSTER_NAMES=('nightswatch-manager' 'lannisters-worker' 'starks-worker' 'dothrakis-worker' 'ironborns-worker' 'wildlings-worker' 'whitewalkers-worker')
+source env_init.sh
 
 # stop machines irrespective of currently running or not, irrespective of node exists or not
 # since the error messages are redirected to /dev/null
+manager_index=0
+worker_index=0
+
 for i in $(seq 0 $((CLUSTER_SIZE-1)));
 do
-	echo "stopping node : ${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))..."
-	docker-machine stop "${CLUSTER_NAMES[$i]}-${ENVIRONMENT}-0$((i+1))" > /dev/null 2>&1
+
+	if [ $i -lt $MANAGER_COUNT ];
+	then
+		CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+		manager_index=$((manager_index + 1))
+	else
+		CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+		worker_index=$((worker_index + 1))
+	fi
+
+	echo "stopping node : $CLUSTER_NODE_NAME..."
+	docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
 	echo "node stopped succesfully"
+
 done
 
 # list the cluster machines
