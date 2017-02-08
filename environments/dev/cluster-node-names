@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export CLUSTER_MANAGER_NAMES=('nightswatch-manager-dev' 'lannisters' 'starks' 'dothrakis' 'ironborns' 'wildlings' 'whitewalkers' 'westeros')
+export CLUSTER_WORKER_NAMES=('johnsnow' 'tyrion' 'daenerys' 'cersie' 'melisandre' 'ygritte' 'hodor' 'arya' 'sansa' 'nedstark' 'lordbaelish' 'lordvarys' 'jamie' 'catelyn' 'missandei' 'highsparrow' 'bran')
