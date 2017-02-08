@@ -1,6 +1,19 @@
 # any non required files generated just as by
 # product for the shell script
-
+.env
+**/**/.env
+**/*/.env
+**/.env
+*/**/.env
+*/*/.env
+*/.env
+.env*
+**/**/.env*
+**/*/.env*
+**/.env*
+*/**/.env*
+*/*/.env*
+*/.env*
 
 # laravel specific 
 vendor/
