@@ -1,0 +1,11 @@
+export ENV_PATH=$HOME/Documents/Github/sources/public/DevOps/environments
+
+export ENVIRONMENT=<dev,production>
+export PATH_TO_PROVISIONING_ENVIRONMENT=/Users/Roy/Documents/Github/sources/public/DevOps/provisioning/<dev,production/aws/docker-machine>
+
+export CLOUD_PROVIDER=aws
+export PROVISIONING_TOOL=docker-machine
+
+export SWARM_VIEWER_UI_SERVICE_NAME=swarm-viewer-ui
+export DOCKER_MANAGEMENT_WEB_UI_SERVICE_NAME=portainer
+export MICROSERVICES_VIEWER_WEAVE_SCOPE_WEB_UI_SERVICE_NAME=weave-scope
