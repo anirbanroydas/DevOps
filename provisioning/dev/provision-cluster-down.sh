@@ -19,11 +19,17 @@ do
 		worker_index=$((worker_index + 1))
 	fi
 
-	echo "stopping node : $CLUSTER_NODE_NAME..."
-	docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
-	echo "node stopped succesfully"
+	echo "[$CLUSTER_NODE_NAME] - stopping node..."
+	(
+		docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
+		echo "[$CLUSTER_NODE_NAME] - node stopped succesfully"
+	) &
 
 done
+
+echo "Waiting for nodes to be stopped..."
+wait
+echo "Nodes Stopeed succesfully"
 
 # list the cluster machines
 echo "Current Docker Hosts:"
