@@ -1,4 +1,0 @@
-export ENV_PATH=$HOME/Documents/Github/sources/public/DevOps/environments
-export ENVIRONMENT=production
-export CLOUD_PROVIDER=aws
-export PROVISIONING_TOOL=docker-machine
