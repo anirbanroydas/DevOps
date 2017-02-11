@@ -1,2 +1,0 @@
-export ENV_PATH=$HOME/Documents/Github/sources/public/DevOps/environments
-export ENVIRONMENT=dev
