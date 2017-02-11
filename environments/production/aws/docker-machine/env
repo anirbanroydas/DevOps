@@ -1,6 +1,3 @@
-export CLUSTER_SIZE=5
-export MANAGER_COUNT=3
-export WORKER_COUNT=5
 export MACHINE_DRIVER=amazonec2
 export AWS_ACCESS_KEY_ID=<access_key_id>
 export AWS_SECRET_ACCESS_KEY=<secret_access_key>
@@ -11,4 +8,3 @@ export AWS_SECURITY_GROUP=docker-machine
 export AWS_VOLUME_TYPE=gp2
 export AWS_SSH_USER=ubuntu
 export AWS_SSH_KEYPATH=<path/to/custom/ssh/private/key>
-export CREATE_SWARM=<yes|no>
