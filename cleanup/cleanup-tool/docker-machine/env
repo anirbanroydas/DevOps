@@ -1,0 +1,1 @@
+export ENV_INIT_SCRIPT_PATH=</path/to/env_init.sh/inside/devops/repo/>
