@@ -1,7 +1,6 @@
 #!/bin/bash
 
-export ENV_INIT_SCRIPT_PATH=$HOME/Documents/Github/sources/public/DevOps/provisioning/production
-
+source .env
 source $ENV_INIT_SCRIPT_PATH/env_init.sh
 
 # stop machines irrespective of currently running or not, irrespective of node exists or not
@@ -21,12 +20,18 @@ do
 		worker_index=$((worker_index + 1))
 	fi
 
-	echo "stopping node : $CLUSTER_NODE_NAME..."
-	docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
-	echo "node stopped succesfully"
+	echo "[$CLUSTER_NODE_NAME] - stopping node..."
+	(
+		docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
+		echo "[$CLUSTER_NODE_NAME] - node stopped succesfully"
+	) &
 
 done
 
+
+echo "Waiting for nodes to be stopped..."
+wait
+echo "Nodes Stopeed succesfully"
 
 # list the cluster machines
 echo "Current Docker Hosts:"
