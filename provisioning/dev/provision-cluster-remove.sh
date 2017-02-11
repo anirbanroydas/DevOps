@@ -19,13 +19,19 @@ do
 		worker_index=$((worker_index + 1))
 	fi
 
-	echo "stopping and removing node : $CLUSTER_NODE_NAME..."
-	docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
-	docker-machine rm --force -y "$CLUSTER_NODE_NAME" > /dev/null 2>&1
-	echo "node stopped and removed succesfully"
+	echo "[$CLUSTER_NODE_NAME] - stopping and removing node..."
+	(
+		# docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
+		docker-machine rm --force -y "$CLUSTER_NODE_NAME" > /dev/null 2>&1
+		echo "[$CLUSTER_NODE_NAME] - node stopped and removed succesfully"
+	) &
 
 done
 
+
+echo "Waiting for nodes to be removed..."
+wait
+echo "Nodes Removed succesfully"
 
 # list the cluster machines
 echo "Current Docker Hosts:"
