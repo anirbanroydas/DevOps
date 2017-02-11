@@ -1,0 +1,11 @@
+export ENV_PATH=$HOME/Documents/Github/sources/public/DevOps/environments
+
+export ENVIRONMENT=<production|dev>
+
+export CLEANUP_TOOL=<docker-machine|terraform>
+
+export CLOUD_PROVIDER=<aws|gcp|azure|digitalocean>
+
+export PROVISIONING_TOOL=<docker-machine|terrafrom>
+
+export DEV_PROVISIONING_TOOL_DRIVER=<virtualbox|vmwarefusion>
