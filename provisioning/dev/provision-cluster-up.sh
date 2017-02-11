@@ -60,6 +60,10 @@ source env_init.sh
 # fi
 
 
+export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
+export MAIN_SWARM_MANAGER_NEW="no"
+
 
 export CREATE_STATEMENT="docker-machine create "
 export REMOVE="docker-machine rm --force -y "
@@ -70,29 +74,39 @@ export IP="docker-machine ip "
 
 
 function create_node() {
-   echo "creating node..."
-   $CREATE $1 2> /dev/null   
-   sleep 2
+   	
+   	if [ "$MAIN_SWARM_MANAGER" == "$1" ]; then
+		MAIN_SWARM_MANAGER_NEW="yes"
+	fi
    
-   while [ $? -ne 0 ]; do
-        $REMOVE $1 > /dev/null 2>&1
-        sleep 2
-        $CREATE $1 2> /dev/null
-        sleep 2
-   done
+   	$CREATE $1 > /dev/null 2>&1
+   
+   	# sleep 2
+   	# while [ $? -ne 0 ]; do
+   	#      $REMOVE $1 > /dev/null 2>&1
+   	#      sleep 2
+   	#      $CREATE $1 2> /dev/null
+   	#      sleep 2
+   	# done
 }
 
 
 
 function start_node() {
-	$START $1 2> /dev/null
-	sleep 2
-	while [ $? -ne 0 ]; do
-		$STOP $1 > /dev/null 2>&1
-		sleep 2
-		$START $1 2> /dev/null
-		sleep 2
-	done
+
+	if [ "$MAIN_SWARM_MANAGER" == "$1" ]; then
+		MAIN_SWARM_MANAGER_NEW="yes"
+	fi
+	
+	$START $1 > /dev/null 2>&1
+	
+	# sleep 2
+	# while [ $? -ne 0 ]; do
+	# 	$STOP $1 > /dev/null 2>&1
+	# 	sleep 2
+	# 	$START $1 2> /dev/null
+	# 	sleep 2
+	# done
 }
 
 
@@ -101,14 +115,19 @@ function start_node() {
 
 function change_docker_env_to() {
 
-	eval $(docker-machine env $1)
+	eval $(docker-machine env $1) > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		echo "Error in changing docker environment, regenerating certs..."
+		docker-machine regenerate-certs --force $1
+		eval $(docker-machine env $1) > /dev/null 2>&1
+	fi
 }
 
 
 
 function inspect_docker_node() {
 
-	docker node inspect $1 > /dev/null 2>&1
+	docker-machine ssh $1 docker node inspect $2 > /dev/null 2>&1
 }
 
 
@@ -133,31 +152,40 @@ do
 	fi
 
 	# create the the swarm nodes
-	echo "Checking if Swarm ${NODE_TYPE} Node - $CLUSTER_NODE_NAME exists or not..."
+	echo "[$CLUSTER_NODE_NAME ] - Checking if Swarm ${NODE_TYPE} Node exists or not..."
 	docker-machine ls -q | grep -w "$CLUSTER_NODE_NAME" > /dev/null 2>&1
 	if [ $? -ne 0 ];
 	then
 		# create the swarm node
-		echo "creating Swarm ${NODE_TYPE} Node - $CLUSTER_NODE_NAME..."
-		create_node  "$CLUSTER_NODE_NAME" 
-		echo "Swarm ${NODE_TYPE} Node created: $CLUSTER_NODE_NAME"
+		echo "[$CLUSTER_NODE_NAME] - creating Swarm ${NODE_TYPE} Node..."
+		(
+			create_node  "$CLUSTER_NODE_NAME" 
+			echo "[$CLUSTER_NODE_NAME] - Swarm ${NODE_TYPE} Node created"
+		)
 
 	else
-		echo "Swarm ${NODE_TYPE} Node - $CLUSTER_NODE_NAME  already exists"
-		echo "checking machine status, start if currently stopped, otherwise move forward"
-		docker-machine status "$CLUSTER_NODE_NAME" | grep -w "Stopped" > /dev/null 2>&1
-		if [ $? -eq 0 ];
-		then
-			# start the stopped cluster node machine
-			echo "$CLUSTER_NODE_NAME machine is Stopped, hence starting..."
-			start_node "$CLUSTER_NODE_NAME"
-			echo "$CLUSTER_NODE_NAME machine started Successfully"
-		else
-			echo "$CLUSTER_NODE_NAME machine is already running, moving forward"
-		fi
+		echo "[$CLUSTER_NODE_NAME] - Swarm ${NODE_TYPE} Node already exists"
+		echo "[$CLUSTER_NODE_NAME] - checking ${NODE_TYPE} Node status, start if currently stopped, otherwise move forward"
+		(
+			docker-machine status "$CLUSTER_NODE_NAME" | grep -w "Stopped" > /dev/null 2>&1
+			if [ $? -eq 0 ];
+			then
+				# start the stopped cluster node machine
+				echo "[$CLUSTER_NODE_NAME] machine is Stopped, hence starting..."
+				start_node "$CLUSTER_NODE_NAME"
+				echo "[$CLUSTER_NODE_NAME] machine started Successfully"
+			else
+				echo "[$CLUSTER_NODE_NAME] machine is already running, moving forward"
+			fi
+		) &
 	fi
 done
 
+
+
+echo "Wating for cluster node creation..."
+wait
+echo "Cluster Nodes Created"
 
 
 # list the cluster machines
@@ -169,35 +197,46 @@ echo "Checking if swarm to be created or not..."
 # proceed with swarm creation only if necesssary
 if [ "$CREATE_SWARM" == "yes" ]; then
 
-	MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+	export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
 	echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
-	MAIN_SWARM_MANAGER_IP=$(IP "$MAIN_SWARM_MANAGER")
+	export MAIN_SWARM_MANAGER_IP=$(docker-machine ip  "$MAIN_SWARM_MANAGER")
 	echo "Main Swarm Manager IP : $MAIN_SWARM_MANAGER_IP"
 
 	# change docker machine env to main swarm manager
-	change_docker_env_to "$MAIN_SWARM_MANAGER"
+	# change_docker_env_to "$MAIN_SWARM_MANAGER"
 
 	# check active machine status again
-	echo "Active Machine : $(docker-machine active)"
+	# echo "Active Machine : $(docker-machine active)"
 
 	# init swarm (need for service command); if not created
 	echo "Checking if Swarm is already initialized..."
-	docker node ls > /dev/null 2>&1 | grep "Leader"
-	if [ $? -ne 0 ]; 
-	then
-		# initialize swarm mode
-		echo "Swarm not initialzed, hence starting..."
-		echo "Initializing Swarm..."
-		docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1
+	if [ "$MAIN_SWARM_MANAGER_NEW" == "yes" ]; then
+		echo "Main Swarm Manger Node has been created/started, hence new ip, thus reinitialzing swarm"
+		echo "First leaving previous swarm, if any"
+		docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm leave --force > /dev/null 2>&1
+		echo "Initializing new swarm..."
+		docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1 
 		echo "Swarm Initialized"
-	else
-		echo "Swarm already initailized, moving forward"
+	else 
+		# initialize swarm only if it is already not initialzed
+		echo "Main Swarm Manager has not been creted or restarded, hence now checking if swarm is already initialzed or not.."
+		docker-machine ssh "$MAIN_SWARM_MANAGER" docker node ls | grep "Leader" > /dev/null 2>&1
+		if [ $? -ne 0 ]; 
+		then
+			# initialize swarm mode
+			echo "Swarm not initialzed, hence starting..."
+			echo "Initializing Swarm..."
+			docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1
+			echo "Swarm Initialized"
+		else
+			echo "Swarm already initailized, moving forward"
+		fi
 	fi
 
 
 	# save the swarm token to use in the rest of the nodes
-	SWARM_WORKER_JOIN_TOKEN=$(docker swarm join-token -q worker)
-	SWARM_MANAGER_JOIN_TOKEN=$(docker swarm join-token -q manager)
+	export SWARM_WORKER_JOIN_TOKEN=$(docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm join-token -q worker)
+	export SWARM_MANAGER_JOIN_TOKEN=$(docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm join-token -q manager)
 
 	# initialize the managers to join the swarm
 	# but, before that check if the node has already joined the swarm as manager or not
@@ -219,29 +258,36 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 			worker_index=$((worker_index + 1))
 		fi
 
-		inspect_docker_node "$CLUSTER_NODE_NAME"
-	    if [ $? -ne 0 ]; 
-		then
-			echo "$CLUSTER_NODE_NAME node have not joined $MAIN_SWARM_MANAGER manager"
-			echo "$CLUSTER_NODE_NAME node joining $MAIN_SWARM_MANAGER manager"
-			change_docker_env_to "$MAIN_SWARM_MANAGER"
-			echo "Active Machine : $(docker-machine active)"
-			echo "$CLUSTER_NODE_NAME node joining swarm mananger $MAIN_SWARM_MANAGER..."
-			# first leave any previous swarm if at all
-			docker swarm leave  > /dev/null 2>&1
-			docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MANAGER_IP":2377
-			echo "$CLUSTER_NODE_NAME joined swarm managed by $MAIN_SWARM_MANAGER"
-		else
-			echo "$CLUSTER_NODE_NAME node already joined $MAIN_SWARM_MANAGER manager, moving forward"
-		fi
+		echo "[$CLUSTER_NODE_NAME] - Inspecting..."
+		(
+			inspect_docker_node "$MAIN_SWARM_MANAGER" "$CLUSTER_NODE_NAME"
+		    if [ $? -ne 0 ]; 
+			then
+				echo "[$CLUSTER_NODE_NAME] node have not joined $MAIN_SWARM_MANAGER manager"
+				echo "[$CLUSTER_NODE_NAME] node joining $MAIN_SWARM_MANAGER manager"
+				# change_docker_env_to "$CLUSTER_NODE_NAME"
+				# echo "Active Machine : $(docker-machine active)"
+				echo "[$CLUSTER_NODE_NAME] node joining swarm mananger $MAIN_SWARM_MANAGER..."
+				# first leave any previous swarm if at all
+				docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm leave  > /dev/null 2>&1
+				docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_IP":2377 > /dev/null 2>&1
+				echo "[$CLUSTER_NODE_NAME] joined swarm managed by $MAIN_SWARM_MANAGER"
+			else
+				echo "[$CLUSTER_NODE_NAME] node already joined $MAIN_SWARM_MANAGER manager, moving forward"
+			fi
+		) &
 
-		change_docker_env_to "$CLUSTER_NODE_NAME"
-		echo "Active Machine : $(docker-machine active)"
+		# change_docker_env_to "$MAIN_SWARM_MANAGER"
+		# echo "Active Machine : $(docker-machine active)"
 
 	done
-	echo "Swarm Initialization Completed"
+
+	echo "Wating for swarm creation..."
+	wait
+	echo "Swarm Nodes Initialization completed"
+
 	echo "Current Swarm Nodes:"
-	docker node ls
+	docker-machine ssh "$MAIN_SWARM_MANAGER" docker node ls
 
 else 
 
@@ -268,19 +314,23 @@ do
 		worker_index=$((worker_index + 1))
 	fi
 
-	echo "adding dns entry to /etc/resolv.conf for swarm node : $CLUSTER_NODE_NAME"
-	docker-machine ssh "$CLUSTER_NODE_NAME" \
-	'echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo  cat - /etc/resolv.conf > /tmp/out_etc_resolv \
-	&&  sudo mv /tmp/out_etc_resolv  /etc/resolv.conf \
-	&& sudo rm -f /tmp/out_etc_resolv >/dev/null 2>&1 &'
+	echo "[$CLUSTER_NODE_NAME] - adding dns entry to /etc/resolv.conf for swarm node..."
+	(
+		docker-machine ssh "$CLUSTER_NODE_NAME" '
+		echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo  cat - /etc/resolv.conf > /tmp/out_etc_resolv \
+		&&  sudo mv /tmp/out_etc_resolv  /etc/resolv.conf \
+		&& sudo rm -f /tmp/out_etc_resolv >/dev/null 2>&1 
+		'
 	
-	echo "dns entry added successfully for $CLUSTER_NODE_NAME"
+		echo "[$CLUSTER_NODE_NAME] - dns entry added successfully"
+	) &
 
 done
 
 
-
-
+echo "Wating for configuration of nodes..."
+wait
+echo "Configuration of nodes complete"
 
 echo "Provisioning Successful"
 
