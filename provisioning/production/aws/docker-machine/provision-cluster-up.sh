@@ -15,13 +15,6 @@ else
 fi
 
 
-export AWS_ZONE_MANAGER=('a' 'b' 'a' 'b' 'a' 'b' 'a' 'b')
-export AWS_ZONE_WORKER=('a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a')
-export AWS_INSTANCE_TYPES_MANAGER=('t2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro')
-export AWS_INSTANCE_TYPES_WORKER=('t2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro')
-export AWS_ROOT_SIZES_MANAGER=(8 8 8 8 8 8 8 8)
-export AWS_ROOT_SIZES_WORKER=(8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8)
-
 
 # export CLUSTER_SIZE=5
 # export MANAGER_COUNT=3
@@ -81,15 +74,7 @@ function create_node() {
    	# echo "CREATE : $CREATE"
    	# echo "creating node..."
    	$CREATE > /dev/null 2>&1
-   	# echo "creaded now"
-   	# # sleep 2
-   
-   	# while [ $? -ne 0 ]; do
-   	#      $REMOVE $5 > /dev/null 2>&1
-   	#      # sleep 2
-   	#      $CREATE 2> /dev/null
-   	#      # sleep 2
-   	# done
+
 }
 
 
@@ -105,13 +90,7 @@ function start_node() {
 	fi
 
 	$START $1  > /dev/null 2>&1
-	# # sleep 2
-	# while [ $? -ne 0 ]; do
-	# 	$STOP $1 > /dev/null 2>&1 
-	# 	# sleep 2
-	# 	$START $1 2> /dev/null &
-	# 	# sleep 2
-	# done
+
 }
 
 
@@ -237,10 +216,6 @@ docker-machine ls
 
 # update the security group for ssl traffic
 echo "[$AWS_SECURITY_GROUP] Updating security group for Internet"
-# aws_ec2_authorize_security_group_ingress_internet tcp 443 0.0.0.0/0
-# aws_ec2_authorize_security_group_ingress_internet tcp 80 0.0.0.0/0
-# aws_ec2_authorize_security_group_ingress_internet tcp 8081 0.0.0.0/0
-# aws_ec2_authorize_security_group_ingress_internet tcp 8082 0.0.0.0/0
 echo "Updating security group for TCP Ports"
 for port in "${OPEN_PORTS_TCP_INTERNET[@]}"; do
 	echo "Opening tcp port : $port.."
@@ -305,11 +280,6 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 			echo "udp port $port opened internally successfully"
 		) &
 	done
-	# aws_ec2_authorize_security_group_ingress_swarm tcp 2377 
-	# aws_ec2_authorize_security_group_ingress_swarm tcp 7946 
-	# aws_ec2_authorize_security_group_ingress_swarm udp 7946
-	# aws_ec2_authorize_security_group_ingress_swarm tcp 4789
-	# aws_ec2_authorize_security_group_ingress_swarm udp 4789
 
 
 	echo "Wating for opening tcp and udp ports for swarm..."
@@ -318,7 +288,7 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 
 	export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
 	echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
-	export MAIN_SWARM_MANAGER_PRIVATE_IP=$(docker-machine inspect "$MAIN_SWARM_MANAGER" | jq .Driver.PrivateIPAddress)
+	export MAIN_SWARM_MANAGER_PRIVATE_IP=$(docker-machine inspect "$MAIN_SWARM_MANAGER" --format '{{json .Driver.PrivateIPAddress}}')
 	echo "Main Swarm Manager Private IP : $MAIN_SWARM_MANAGER_PRIVATE_IP"
 
 
@@ -333,24 +303,28 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 	if [ "$MAIN_SWARM_MANAGER_NEW" == "yes" ]; then
 		echo "Main Swarm Manger Node has been created/started, hence new ip, thus reinitialzing swarm"
 		echo "First leaving previous swarm, if any"
-		docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm leave --force > /dev/null 2>&1
-		echo "Initializing new swarm..."
-		docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1 
-		echo "Swarm Initialized"
+		docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
+			docker swarm leave --force > /dev/null 2>&1
+			echo "Initializing new swarm..."
+			docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1 
+			echo "Swarm Initialized"
+		EOSSH
 	else 
 		# initialize swarm only if it is already not initialzed
 		echo "Main Swarm Manager has not been creted or restarded, hence now checking if swarm is already initialzed or not.."
-		docker-machine ssh "$MAIN_SWARM_MANAGER" docker node ls | grep "Leader" > /dev/null 2>&1
-		if [ $? -ne 0 ]; 
-		then
-			# initialize swarm mode
-			echo "Swarm not initialzed, hence starting..."
-			echo "Initializing Swarm..."
-			docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1
-			echo "Swarm Initialized"
-		else
-			echo "Swarm already initailized, moving forward"
-		fi
+		docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
+			docker node ls | grep "Leader" > /dev/null 2>&1
+			if [ $? -ne 0 ]; 
+			then
+				# initialize swarm mode
+				echo "Swarm not initialzed, hence starting..."
+				echo "Initializing Swarm..."
+				docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1
+				echo "Swarm Initialized"
+			else
+				echo "Swarm already initailized, moving forward"
+			fi
+		EOSSH
 	fi
 
 
@@ -389,9 +363,11 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 				# echo "Active Machine : $(docker-machine active)"
 				echo "$CLUSTER_NODE_NAME node joining swarm mananger $MAIN_SWARM_MANAGER..."
 				# first leave any previous swarm if at all
-				docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm leave --force > /dev/null 2>&1
-				docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_PRIVATE_IP":2377 > /dev/null 2>&1
-				echo "$CLUSTER_NODE_NAME joined swarm managed by $MAIN_SWARM_MANAGER"
+				docker-machine ssh "$CLUSTER_NODE_NAME" <<- EOSSH
+					docker swarm leave --force > /dev/null 2>&1
+					docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_PRIVATE_IP":2377 > /dev/null 2>&1
+					echo "$CLUSTER_NODE_NAME joined swarm managed by $MAIN_SWARM_MANAGER"
+				EOSSH
 			else
 				echo "$CLUSTER_NODE_NAME node already joined $MAIN_SWARM_MANAGER manager, moving forward"
 			fi
@@ -435,25 +411,26 @@ do
 
 	echo "[$CLUSTER_NODE_NAME] - processing for swarm node..."
 	(
-		docker-machine ssh "$CLUSTER_NODE_NAME" '
-		if ! which docker-compose > /dev/null 2>&1; then 
-			echo "installing docker-compose..."
-			sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
-			-o /usr/local/bin/docker-compose > /dev/null 2>&1; 
-			sudo chmod +x /usr/local/bin/docker-compose; 
-		else
-			echo "docker-compose already installed, moving forward"
-		fi
-		echo "adding user ubuntu to group docker"
-		sudo usermod -aG docker ubuntu > /dev/null 2>&1
-		if [ $? -ne 0 ]; then 
-			echo "user ubuntu unable to be added to group docker"
-		else
-			echo "user ubuntu added to group docker successfully"
-		fi
-		'
-	
-		echo "[$CLUSTER_NODE_NAME] - processing done"
+		docker-machine ssh "$CLUSTER_NODE_NAME" <<- EOSSH
+			if ! which docker-compose > /dev/null 2>&1; then 
+				echo "installing docker-compose..."
+				sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
+				-o /usr/local/bin/docker-compose > /dev/null 2>&1; 
+				sudo chmod +x /usr/local/bin/docker-compose; 
+			else
+				echo "docker-compose already installed, moving forward"
+			fi
+			echo "adding user ubuntu to group docker"
+			sudo usermod -aG docker ubuntu > /dev/null 2>&1
+			if [ $? -ne 0 ]; then 
+				echo "user ubuntu unable to be added to group docker"
+			else
+				echo "user ubuntu added to group docker successfully"
+			fi
+			
+			echo "[$CLUSTER_NODE_NAME] - processing done"
+		
+		EOSSH
 	
 	) &
 	
@@ -463,37 +440,6 @@ echo "Wating for configuration of nodes..."
 wait
 echo "User ubuntu addded to group docker for all nodes"
 echo "docker-compose installed successfully in all nodes"
-
-
-
-# manager_index=0
-# worker_index=0
-
-# echo "Dns management for all the nodes im the swarm"
-# # add dns nameservers pointing to google nameservers in /etc/resolv.conf due to a bug/error
-# # whcih does not allow to pull images from docker registry (using docker version 1.13.0)
-# for i in $(seq 0 $((CLUSTER_SIZE-1)));
-# do
-
-# 	if [ $i -lt $MANAGER_COUNT ];
-# 	then
-# 		CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
-# 		manager_index=$((manager_index + 1))
-# 	else
-# 		CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
-# 		worker_index=$((worker_index + 1))
-# 	fi
-
-# 	echo "adding dns entry to /etc/resolv.conf for swarm node : $CLUSTER_NODE_NAME"
-# 	docker-machine ssh "$CLUSTER_NODE_NAME" \
-# 	'echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo  cat - /etc/resolv.conf > /tmp/out_etc_resolv \
-# 	&&  sudo mv /tmp/out_etc_resolv  /etc/resolv.conf \
-# 	&& sudo rm -f /tmp/out_etc_resolv >/dev/null 2>&1 &'
-	
-# 	echo "dns entry added successfully for $CLUSTER_NODE_NAME"
-
-# done
-
 
 
 echo "Provisioning Successful"
