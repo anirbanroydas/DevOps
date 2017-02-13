@@ -4,3 +4,11 @@ export CREATE_SWARM=<yes|no>
 
 export CLOUD_PROVIDER=aws
 export PROVISIONING_TOOL=docker-machine
+
+export SWARM_MODE_NODE=<yes|no>
+export CREATE_SWARM_NODE=<yes|no>
+export MAIN_SWARM_MANAGER_PRIVATE_IP=<IP_of_manager_if_create_swarm_node_is_no>
+export AWS_SWARM_NODE_TYPE=<manager|worker>
+export AWS_SWARM_TOKEN=swarmtoken
+
+export SECURITY_GROUP_SWARM=<no|yes>
