@@ -1,3 +1,5 @@
+#!/bin/bash
+
 export MACHINE_DRIVER=amazonec2
 export AWS_ACCESS_KEY_ID=<access_key_id>
 export AWS_SECRET_ACCESS_KEY=<secret_access_key>
@@ -8,3 +10,18 @@ export AWS_SECURITY_GROUP=docker-machine
 export AWS_VOLUME_TYPE=gp2
 export AWS_SSH_USER=ubuntu
 export AWS_SSH_KEYPATH=<path/to/custom/ssh/private/key>
+
+
+
+export AWS_ZONE_MANAGER=('a' 'b' 'a' 'b' 'a' 'b' 'a' 'b')
+export AWS_ZONE_WORKER=('a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a' 'b' 'a')
+export AWS_INSTANCE_TYPES_MANAGER=('t2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro')
+export AWS_INSTANCE_TYPES_WORKER=('t2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro' 't2.micro')
+export AWS_ROOT_SIZES_MANAGER=(8 8 8 8 8 8 8 8)
+export AWS_ROOT_SIZES_WORKER=(8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8 8)
+
+
+export AWS_NODE_NAME=<uniquer_name_of_node>
+export AWS_ZONE_NODE=<a|b>
+export AWS_INSTANCE_TYPE_NODE=<t2.micro|whater_you_want>
+export AWS_ROOT_SIZE_NODE=<8|8_and_above>
