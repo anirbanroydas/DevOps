@@ -80,14 +80,7 @@ function create_node() {
 	fi
    
    	$CREATE $1 > /dev/null 2>&1
-   
-   	# sleep 2
-   	# while [ $? -ne 0 ]; do
-   	#      $REMOVE $1 > /dev/null 2>&1
-   	#      sleep 2
-   	#      $CREATE $1 2> /dev/null
-   	#      sleep 2
-   	# done
+
 }
 
 
@@ -100,13 +93,6 @@ function start_node() {
 	
 	$START $1 > /dev/null 2>&1
 	
-	# sleep 2
-	# while [ $? -ne 0 ]; do
-	# 	$STOP $1 > /dev/null 2>&1
-	# 	sleep 2
-	# 	$START $1 2> /dev/null
-	# 	sleep 2
-	# done
 }
 
 
@@ -213,24 +199,30 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 	if [ "$MAIN_SWARM_MANAGER_NEW" == "yes" ]; then
 		echo "Main Swarm Manger Node has been created/started, hence new ip, thus reinitialzing swarm"
 		echo "First leaving previous swarm, if any"
-		docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm leave --force > /dev/null 2>&1
-		echo "Initializing new swarm..."
-		docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1 
-		echo "Swarm Initialized"
+		docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
+			docker swarm leave --force > /dev/null 2>&1
+			echo "Initializing new swarm..."
+			docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1 
+			echo "Swarm Initialized"
+		EOSSH
+
 	else 
 		# initialize swarm only if it is already not initialzed
 		echo "Main Swarm Manager has not been creted or restarded, hence now checking if swarm is already initialzed or not.."
-		docker-machine ssh "$MAIN_SWARM_MANAGER" docker node ls | grep "Leader" > /dev/null 2>&1
-		if [ $? -ne 0 ]; 
-		then
-			# initialize swarm mode
-			echo "Swarm not initialzed, hence starting..."
-			echo "Initializing Swarm..."
-			docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1
-			echo "Swarm Initialized"
-		else
-			echo "Swarm already initailized, moving forward"
-		fi
+		docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
+			docker node ls | grep "Leader" > /dev/null 2>&1
+			if [ $? -ne 0 ]; 
+			then
+				# initialize swarm mode
+				echo "Swarm not initialzed, hence starting..."
+				echo "Initializing Swarm..."
+				docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1
+				echo "Swarm Initialized"
+			else
+				echo "Swarm already initailized, moving forward"
+			fi
+		EOSSH
+
 	fi
 
 
@@ -269,9 +261,12 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 				# echo "Active Machine : $(docker-machine active)"
 				echo "[$CLUSTER_NODE_NAME] node joining swarm mananger $MAIN_SWARM_MANAGER..."
 				# first leave any previous swarm if at all
-				docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm leave  > /dev/null 2>&1
-				docker-machine ssh "$CLUSTER_NODE_NAME" docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_IP":2377 > /dev/null 2>&1
-				echo "[$CLUSTER_NODE_NAME] joined swarm managed by $MAIN_SWARM_MANAGER"
+				docker-machine ssh "$CLUSTER_NODE_NAME" <- EOSSH
+					docker swarm leave  > /dev/null 2>&1
+					docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_IP":2377 > /dev/null 2>&1
+					echo "[$CLUSTER_NODE_NAME] joined swarm managed by $MAIN_SWARM_MANAGER"
+				EOSSH
+				
 			else
 				echo "[$CLUSTER_NODE_NAME] node already joined $MAIN_SWARM_MANAGER manager, moving forward"
 			fi
