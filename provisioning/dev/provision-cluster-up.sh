@@ -65,7 +65,7 @@ echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
 export MAIN_SWARM_MANAGER_NEW="no"
 
 
-export CREATE_STATEMENT="docker-machine create "
+export CREATE="docker-machine create "
 export REMOVE="docker-machine rm --force -y "
 export START="docker-machine start "
 export STOP="docker-machine stop "
@@ -80,6 +80,8 @@ function create_node() {
 	fi
    
    	$CREATE $1 > /dev/null 2>&1
+
+   	echo "returning from create_node"
 
 }
 
@@ -180,6 +182,7 @@ docker-machine ls
 
 
 echo "Checking if swarm to be created or not..."
+echo "CREATE_SARM = $CREATE_SWARM"
 # proceed with swarm creation only if necesssary
 if [ "$CREATE_SWARM" == "yes" ]; then
 
@@ -261,12 +264,12 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 				# echo "Active Machine : $(docker-machine active)"
 				echo "[$CLUSTER_NODE_NAME] node joining swarm mananger $MAIN_SWARM_MANAGER..."
 				# first leave any previous swarm if at all
-				docker-machine ssh "$CLUSTER_NODE_NAME" <- EOSSH
+				docker-machine ssh "$CLUSTER_NODE_NAME" <<- EOSSH
 					docker swarm leave  > /dev/null 2>&1
 					docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_IP":2377 > /dev/null 2>&1
 					echo "[$CLUSTER_NODE_NAME] joined swarm managed by $MAIN_SWARM_MANAGER"
 				EOSSH
-				
+
 			else
 				echo "[$CLUSTER_NODE_NAME] node already joined $MAIN_SWARM_MANAGER manager, moving forward"
 			fi
@@ -294,7 +297,7 @@ fi
 manager_index=0
 worker_index=0
 
-echo "Dns management for all the nodes im the swarm"
+echo "Configuring Each Node..."
 # add dns nameservers pointing to google nameservers in /etc/resolv.conf due to a bug/error
 # whcih does not allow to pull images from docker registry (using docker version 1.13.0)
 for i in $(seq 0 $((CLUSTER_SIZE-1)));
@@ -309,15 +312,79 @@ do
 		worker_index=$((worker_index + 1))
 	fi
 
-	echo "[$CLUSTER_NODE_NAME] - adding dns entry to /etc/resolv.conf for swarm node..."
+	echo "[$CLUSTER_NODE_NAME] - Processing..."
 	(
-		docker-machine ssh "$CLUSTER_NODE_NAME" '
-		echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo  cat - /etc/resolv.conf > /tmp/out_etc_resolv \
-		&&  sudo mv /tmp/out_etc_resolv  /etc/resolv.conf \
-		&& sudo rm -f /tmp/out_etc_resolv >/dev/null 2>&1 
-		'
-	
-		echo "[$CLUSTER_NODE_NAME] - dns entry added successfully"
+		docker-machine ssh "$CLUSTER_NODE_NAME" <<- EOSSH
+			# echo "[$CLUSTER_NODE_NAME] - Adding Dns Entry..."
+			# echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null 2>&1
+			# echo "[$CLUSTER_NODE_NAME] - dns entry added successfully"
+			
+			if ! which docker-compose > /dev/null 2>&1; then 
+				echo "[$CLUSTER_NODE_NAME] - Installing docker-compose..."
+				sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
+				-o /usr/local/bin/docker-compose > /dev/null 2>&1; 
+				sudo chmod +x /usr/local/bin/docker-compose; 
+			else
+				echo "[$CLUSTER_NODE_NAME] - docker-compose already installed, moving forward"
+			fi
+
+
+			if ! which rexray > /dev/null 2>&1; then 
+				echo "[$CLUSTER_NODE_NAME] - Installing Rex-Ray"
+				curl -sSL https://dl.bintray.com/emccode/rexray/install | sh > /dev/null 2>&1
+				echo "[$CLUSTER_NODE_NAME] - Rex-Ray Installed"
+				
+			else
+				echo "[$CLUSTER_NODE_NAME] - Rex-Ray Already INstalled, moving forward"
+			fi
+
+			echo "[$CLUSTER_NODE_NAME] - Configuring Rex-Ray"
+			sudo tee /etc/rexray/config.yml << EOF
+			rexray:
+			  logLevel: warn
+			libstorage:
+			  logging:
+			    level: warn
+			  service: virtualbox
+			  integration:
+			    volume:
+			      operations:
+			        create:
+			          default:
+			            size: 8
+			        mount:
+			          preempt: true
+			        unmount: 
+			          ignoreUsedCount: false
+			        path:
+			          cache:
+			            enabled: true
+			            async: true
+			virtualbox:
+			  endpoint: http://192.168.99.1:18083
+			  tls: true
+			  volumePath: /Users/Roy/VirtualBox/Volumes
+			  controllerName: SATA
+			  localMachineNameOrId: "$CLUSTER_NODE_NAME"
+			EOF
+			echo "[$CLUSTER_NODE_NAME] - Rex-Ray configured"
+			
+			echo "[$CLUSTER_NODE_NAME] - Rex-Ray Restarting"
+			docker-machine ssh "$CLUSTER_NODE_NAME" sudo rexray start > /dev/null 2>&1
+			echo "[$CLUSTER_NODE_NAME] - Rex-Ray Restarted Successfully"
+
+			echo "[$CLUSTER_NODE_NAME] - processing done"
+		
+		EOSSH
+
+		# echo "[$CLUSTER_NODE_NAME] - Configuring Rex-Ray"
+		# docker-machine ssh "$CLUSTER_NODE_NAME"  sudo tee /etc/rexray/config.yml < "$STORAGE_PROVISION_CONFIG_FILE" > /dev/null 2>&1
+		# echo "[$CLUSTER_NODE_NAME] - Rex-Ray configured"
+		# echo "[$CLUSTER_NODE_NAME] - Rex-Ray Restarting"
+		# docker-machine ssh "$CLUSTER_NODE_NAME" sudo rexray start > /dev/null 2>&1
+		# echo "[$CLUSTER_NODE_NAME] - Rex-Ray Restarted Successfully"
+
+		# echo "[$CLUSTER_NODE_NAME] - processing done"
 	) &
 
 done
