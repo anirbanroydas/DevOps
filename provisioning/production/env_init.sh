@@ -8,11 +8,14 @@ echo "Provisioning Tool : $PROVISIONING_TOOL"
 source $ENV_PATH/$ENVIRONMENT/.env
 source $ENV_PATH/$ENVIRONMENT/$CLOUD_PROVIDER/$PROVISIONING_TOOL/.env
 
-[ -z "$CLUSTER_SIZE" ] &&  CLUSTER_SIZE=5
-echo "Cluser Size: ${CLUSTER_SIZE}"
+export STORAGE_PROVISION_CONFIG_FILE="$STORAGE_PROVISION_PATH/$STORAGE_PROVISIONING_TOOL/$ENVIRONMENT/$CLOUD_PROVIDER/config.yml"
 
-[ -z "$MANAGER_COUNT" ] && MANAGER_COUNT=3
-[ -z "$WORKER_COUNT" ] && WORKER_COUNT=2
+
+echo "Cluser Size: $CLUSTER_SIZE"
+
+echo "Manager Count: $MANAGER_COUNT"
+echo "Worker Count: $WORKER_COUNT"
+echo "Storage provisioning config file: $STORAGE_PROVISION_CONFIG_FILE"
 
 
 source $ENV_PATH/$ENVIRONMENT/cluster-node-names
