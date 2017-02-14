@@ -34,3 +34,4 @@ echo "Nodes Stopeed succesfully"
 # list the cluster machines
 echo "Current Docker Hosts:"
 docker-machine ls
+
