@@ -15,6 +15,12 @@ else
 fi
 
 
+if [ "$#" -eq 1 ]; then
+	export AWS_NODE_NAME="$1"
+fi
+
+
+
 # export CLUSTER_SIZE=5
 # export MANAGER_COUNT=3
 # export WORKER_COUNT=5
@@ -331,37 +337,53 @@ else
 fi
 
 
-echo "Adding user ubuntu to docker group and Installing docker-compose in each node in the swarm..."
+echo "Configuring Each Node..."
 # install docker-compose in each node
 echo "[$AWS_NODE_NAME] - processing for swarm node..."
 (
-	docker-machine ssh "$AWS_NODE_NAME" <<- EOSSH
+	docker-machine ssh "$AWS_NODE_NAME"  <<- EOSSH
 		if ! which docker-compose > /dev/null 2>&1; then 
-			echo "installing docker-compose..."
+			echo "[$AWS_NODE_NAME] - Installing docker-compose..."
 			sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
 			-o /usr/local/bin/docker-compose > /dev/null 2>&1; 
 			sudo chmod +x /usr/local/bin/docker-compose; 
 		else
-			echo "docker-compose already installed, moving forward"
-		fi
-		echo "adding user ubuntu to group docker"
-		sudo usermod -aG docker ubuntu > /dev/null 2>&1
-		if [ $? -ne 0 ]; then 
-			echo "user ubuntu unable to be added to group docker"
-		else
-			echo "user ubuntu added to group docker successfully"
+			echo "[$AWS_NODE_NAME] - docker-compose already installed, moving forward"
 		fi
 		
-		echo "[$AWS_NODE_NAME] - processing done"
+		echo "[$AWS_NODE_NAME] - adding user ubuntu to group docker"
+		sudo usermod -aG docker ubuntu > /dev/null 2>&1
+		if [ $? -ne 0 ]; then 
+			echo "[$AWS_NODE_NAME] - user ubuntu unable to be added to group docker"
+		else
+			echo "[$AWS_NODE_NAME] - user ubuntu added to group docker successfully"
+		fi
+
+		if ! which rexray > /dev/null 2>&1; then 
+			echo "[$AWS_NODE_NAME] - Installing Rex-Ray"
+			curl -sSL https://dl.bintray.com/emccode/rexray/install | sh > /dev/null 2>&1
+			echo "[$AWS_NODE_NAME] - Rex-Ray Installed"
+			
+		else
+			echo "[$AWS_NODE_NAME] - Rex-Ray Already INstalled, moving forward"
+		fi
 	
 	EOSSH
+
+	echo "[$AWS_NODE_NAME] - Configuring Rex-Ray"
+	docker-machine ssh "$AWS_NODE_NAME"  sudo tee /etc/rexray/config.yml < "$STORAGE_PROVISION_CONFIG_FILE" > /dev/null 2>&1
+	echo "[$AWS_NODE_NAME] - Rex-Ray configured"
+	echo "[$AWS_NODE_NAME] - Rex-Ray Restarting"
+	docker-machine ssh "$AWS_NODE_NAME" sudo rexray start > /dev/null 2>&1
+	echo "[$AWS_NODE_NAME] - Rex-Ray Restarted Successfully"
+
+	echo "[$AWS_NODE_NAME] - processing done"
 
 ) &
 
 
 echo "Wating for configuration of nodes..."
 wait
-echo "User ubuntu addded to group docker for all nodes"
-echo "docker-compose installed successfully in all nodes"
+echo "configuration of all nodes completed"
 
 echo "Provisioning Successful"
