@@ -27,13 +27,13 @@ fi
 # export AWS_VPC_ID=<aws_vpc_id>
 # export AWS_SECURITY_GROUP=docker-machine
 # export AWS_VOLUME_TYPE=gp2
+# export AWS_INSTANCE_PROFILE=<iam_role>
 # export AWS_SSH_USER=ubuntu
 # export AWS_SSH_KEYPATH=<path/to/custom/ssh/private/key>
 # export CREATE_SWARM=yes
 
 # --amazonec2-subnet-id	AWS_SUBNET_ID	-
 # --amazonec2-device-name	AWS_DEVICE_NAME	/dev/sda1
-# --amazonec2-iam-instance-profile	AWS_INSTANCE_PROFILE	-
 # --amazonec2-request-spot-instance	-	false
 # --amazonec2-spot-price	-	0.50
 # --amazonec2-use-private-address	-	false
@@ -326,6 +326,13 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 			fi
 		EOSSH
 	fi
+	# echo "First leaving previous swarm, if any"
+	# docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
+	# 	docker swarm leave --force > /dev/null 2>&1
+	# 	echo "Initializing new swarm..."
+	# 	docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1 
+	# 	echo "Swarm Initialized"
+	# EOSSH
 
 
 	# save the swarm token to use in the rest of the nodes
@@ -395,7 +402,7 @@ fi
 manager_index=0
 worker_index=0
 
-echo "Adding user ubuntu to docker group and Installing docker-compose in each node in the swarm..."
+echo "Configuring Each Node..."
 # install docker-compose in each node
 for i in $(seq 0 $((CLUSTER_SIZE-1)));
 do
@@ -411,26 +418,43 @@ do
 
 	echo "[$CLUSTER_NODE_NAME] - processing for swarm node..."
 	(
-		docker-machine ssh "$CLUSTER_NODE_NAME" <<- EOSSH
+		docker-machine ssh "$CLUSTER_NODE_NAME"  <<- EOSSH
 			if ! which docker-compose > /dev/null 2>&1; then 
-				echo "installing docker-compose..."
+				echo "[$CLUSTER_NODE_NAME] - Installing docker-compose..."
 				sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
 				-o /usr/local/bin/docker-compose > /dev/null 2>&1; 
 				sudo chmod +x /usr/local/bin/docker-compose; 
 			else
-				echo "docker-compose already installed, moving forward"
+				echo "[$CLUSTER_NODE_NAME] - docker-compose already installed, moving forward"
 			fi
-			echo "adding user ubuntu to group docker"
+
+			echo "[$CLUSTER_NODE_NAME] - adding user ubuntu to group docker"
 			sudo usermod -aG docker ubuntu > /dev/null 2>&1
 			if [ $? -ne 0 ]; then 
-				echo "user ubuntu unable to be added to group docker"
+				echo "[$CLUSTER_NODE_NAME] - user ubuntu unable to be added to group docker"
 			else
-				echo "user ubuntu added to group docker successfully"
+				echo "[$CLUSTER_NODE_NAME] - user ubuntu added to group docker successfully"
 			fi
-			
-			echo "[$CLUSTER_NODE_NAME] - processing done"
+
+			if ! which rexray > /dev/null 2>&1; then 
+				echo "[$CLUSTER_NODE_NAME] - Installing Rex-Ray"
+				curl -sSL https://dl.bintray.com/emccode/rexray/install | sh > /dev/null 2>&1
+				echo "[$CLUSTER_NODE_NAME] - Rex-Ray Installed"
+				
+			else
+				echo "[$CLUSTER_NODE_NAME] - Rex-Ray Already INstalled, moving forward"
+			fi
 		
 		EOSSH
+
+		echo "[$CLUSTER_NODE_NAME] - Configuring Rex-Ray"
+		docker-machine ssh "$CLUSTER_NODE_NAME"  sudo tee /etc/rexray/config.yml < "$STORAGE_PROVISION_CONFIG_FILE" > /dev/null 2>&1
+		echo "[$CLUSTER_NODE_NAME] - Rex-Ray configured"
+		echo "[$CLUSTER_NODE_NAME] - Rex-Ray Restarting"
+		docker-machine ssh "$CLUSTER_NODE_NAME" sudo rexray start > /dev/null 2>&1
+		echo "[$CLUSTER_NODE_NAME] - Rex-Ray Restarted Successfully"
+
+		echo "[$CLUSTER_NODE_NAME] - processing done"
 	
 	) &
 	
@@ -438,8 +462,7 @@ done
 
 echo "Wating for configuration of nodes..."
 wait
-echo "User ubuntu addded to group docker for all nodes"
-echo "docker-compose installed successfully in all nodes"
+echo "configuration of all nodes completed"
 
 
 echo "Provisioning Successful"
