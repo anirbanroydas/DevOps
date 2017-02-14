@@ -8,6 +8,7 @@ export AWS_AMI=ami-dd3442b2
 export AWS_VPC_ID=<aws_vpc_id>
 export AWS_SECURITY_GROUP=docker-machine
 export AWS_VOLUME_TYPE=gp2
+export AWS_INSTANCE_PROFILE=<iam_role>
 export AWS_SSH_USER=ubuntu
 export AWS_SSH_KEYPATH=<path/to/custom/ssh/private/key>
 
