@@ -278,7 +278,7 @@ if [ "$SWARM_MODE_NODE" == "yes" ]; then
 			docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
 				docker swarm leave --force > /dev/null 2>&1
 				echo "Initializing new swarm..."
-				docker-machine ssh "$MAIN_SWARM_MANAGER" docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1 
+				docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_PRIVATE_IP" > /dev/null 2>&1 
 				echo "Swarm Initialized"
 			EOSSH
 		else 
@@ -312,7 +312,7 @@ if [ "$SWARM_MODE_NODE" == "yes" ]; then
 			# first leave any previous swarm if at all
 			docker-machine ssh "$AWS_NODE_NAME" <<- EOSSH
 				docker swarm leave --force > /dev/null 2>&1
-				docker-machine ssh "$AWS_NODE_NAME" docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_PRIVATE_IP":2377 > /dev/null 2>&1
+				docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_PRIVATE_IP":2377 > /dev/null 2>&1
 				echo "$AWS_NODE_NAME joined swarm manager"
 			EOSSH
 		
