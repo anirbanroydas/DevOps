@@ -81,8 +81,6 @@ function create_node() {
    
    	$CREATE $1 > /dev/null 2>&1
 
-   	echo "returning from create_node"
-
 }
 
 
