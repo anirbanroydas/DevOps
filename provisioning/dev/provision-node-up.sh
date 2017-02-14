@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source .env
+source env_init.sh
 
 if [ "$#" -eq 1 ]; then
 	export NODE_NAME="$1"
@@ -69,7 +69,7 @@ echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
 export MAIN_SWARM_MANAGER_NEW="no"
 
 
-export CREATE_STATEMENT="docker-machine create "
+export CREATE="docker-machine create "
 export REMOVE="docker-machine rm --force -y "
 export START="docker-machine start "
 export STOP="docker-machine stop "
@@ -78,7 +78,9 @@ export IP="docker-machine ip "
 
 
 function create_node() {
-   	
+   	echo "creating node"
+   	echo "$CREATE $1"
+
    	if [ "$MAIN_SWARM_MANAGER" == "$1" ]; then
 		MAIN_SWARM_MANAGER_NEW="yes"
 	fi
