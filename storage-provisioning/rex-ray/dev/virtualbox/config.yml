@@ -1,0 +1,26 @@
+rexray:
+  logLevel: warn
+libstorage:
+  logging:
+    level: warn
+  service: virtualbox
+  integration:
+    volume:
+      operations:
+        create:
+          default:
+            size: 8
+        mount:
+          preempt: true
+        unmount: 
+          ignoreUsedCount: false
+        path:
+          cache:
+            enabled: true
+            async: true
+virtualbox:
+  endpoint: http://192.168.99.1:18083
+  tls: true
+  volumePath: /Users/Roy/VirtualBox/Volumes
+  controllerName: SATA
+  localMachineNameOrId: johnsnow-01
