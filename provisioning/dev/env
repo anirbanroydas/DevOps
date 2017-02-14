@@ -1,5 +1,14 @@
 export ENV_PATH=$HOME/Documents/Github/sources/public/DevOps/environments
+export STORAGE_PROVISION_PATH=$HOME/Documents/Github/sources/public/DevOps/storage-provisioning
+export STORAGE_PROVISIONING_TOOL=<rex-ray|flocker|scaleio>
 export ENVIRONMENT=dev
 export CREATE_SWARM=<yes|no>
 
+export PROVISIONING_TOOL=<virtualbox|vmwarefusion>
+
 export NODE_NAME=<node_name_to_be_down_or_removed>
+export SWARM_MODE_NODE=<no|yes>
+export CREATE_SWARM_NODE=<no|yes>
+export MAIN_SWARM_MANAGER_IP=
+export SWARM_NODE_TYPE=<worker|manager>
+export SWARM_TOKEN=<swarmtoken>
