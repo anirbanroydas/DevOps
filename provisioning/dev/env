@@ -1,3 +1,5 @@
 export ENV_PATH=$HOME/Documents/Github/sources/public/DevOps/environments
 export ENVIRONMENT=dev
-export CREATE_SWARM=yes
+export CREATE_SWARM=<yes|no>
+
+export NODE_NAME=<node_name_to_be_down_or_removed>
