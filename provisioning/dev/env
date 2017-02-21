@@ -6,6 +6,8 @@ export CREATE_SWARM=<yes|no>
 
 export PROVISIONING_TOOL=<virtualbox|vmwarefusion>
 
+export CONFIGURATION=<yes|no>
+
 export NODE_NAME=<node_name_to_be_down_or_removed>
 export SWARM_MODE_NODE=<no|yes>
 export CREATE_SWARM_NODE=<no|yes>
