@@ -15,6 +15,14 @@
 */*/.env*
 */.env*
 
+# process related
+**/**/nohup.out
+**/*/nohup.out
+**/nohup.out
+*/**/nohup.out
+*/*/nohup.out
+*/nohup.out
+
 # laravel specific 
 vendor/
 node_modules/
