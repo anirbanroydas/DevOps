@@ -21,7 +21,7 @@ do
 
 	echo "[$CLUSTER_NODE_NAME] - stopping node..."
 	(
-		docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
+		docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null
 		echo "[$CLUSTER_NODE_NAME] - node stopped succesfully"
 	) &
 
