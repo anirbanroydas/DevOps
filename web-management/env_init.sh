@@ -77,7 +77,7 @@ function start_service() {
 				# service is shutdown and hence exists, remove servcie and recreate
 				echo "$1 service already present in shutdown state, removing and creating new one..."
 				echo "Removing the service now.."
-				docker service rm "$SERVICE_NAME" 2>&1
+				docker service rm "$SERVICE_NAME" > /dev/null
 				echo "$1 service removed successfully, creating new one..."
 				
 			else
