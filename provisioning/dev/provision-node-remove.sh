@@ -11,7 +11,7 @@ fi
 
 echo "[$NODE_NAME] - stopping and removing node..."
 # docker-machine stop "$NODE_NAME" > /dev/null 2>&1
-docker-machine rm --force -y "$NODE_NAME" > /dev/null 2>&1
+docker-machine rm --force -y "$NODE_NAME" > /dev/null
 echo "[$NODE_NAME] - node stopped and removed succesfully"
 
 # list the cluster machines
