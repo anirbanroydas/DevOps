@@ -22,8 +22,8 @@ do
 
 	echo "[$CLUSTER_NODE_NAME] - stopping and removing node..."
 	(
-		# docker-machine stop "$CLUSTER_NODE_NAME" > /dev/null 2>&1
-		docker-machine rm --force -y "$CLUSTER_NODE_NAME" > /dev/null 2>&1
+		
+		docker-machine rm --force -y "$CLUSTER_NODE_NAME" > /dev/null
 		echo "[$CLUSTER_NODE_NAME] - node stopped and removed succesfully"
 	) &
 
