@@ -11,8 +11,7 @@ fi
 
 
 echo "[$AWS_NODE_NAME] - stopping and removing node..."
-# docker-machine stop "$AWS_NODE_NAME" > /dev/null 2>&1
-docker-machine rm --force -y "$AWS_NODE_NAME" > /dev/null 2>&1
+docker-machine rm --force -y "$AWS_NODE_NAME" > /dev/null
 echo "[$AWS_NODE_NAME] - node stopped and removed succesfully"
 
 # list the cluster machines
