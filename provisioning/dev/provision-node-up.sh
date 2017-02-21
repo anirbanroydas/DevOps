@@ -85,7 +85,7 @@ function create_node() {
 		MAIN_SWARM_MANAGER_NEW="yes"
 	fi
    
-   	$CREATE $1 > /dev/null 2>&1
+   	$CREATE $1
 
 }
 
@@ -97,7 +97,7 @@ function start_node() {
 		MAIN_SWARM_MANAGER_NEW="yes"
 	fi
 	
-	$START $1 > /dev/null 2>&1
+	$START $1 > /dev/null
 	
 }
 
@@ -107,11 +107,11 @@ function start_node() {
 
 function change_docker_env_to() {
 
-	eval $(docker-machine env $1) > /dev/null 2>&1
+	eval $(docker-machine env $1) > /dev/null
 	if [ $? -ne 0 ]; then
 		echo "Error in changing docker environment, regenerating certs..."
 		docker-machine regenerate-certs --force $1
-		eval $(docker-machine env $1) > /dev/null 2>&1
+		eval $(docker-machine env $1) > /dev/null
 	fi
 }
 
@@ -119,7 +119,7 @@ function change_docker_env_to() {
 
 function inspect_docker_node() {
 
-	docker-machine ssh $1 docker node inspect $2 > /dev/null 2>&1
+	docker-machine ssh $1 sudo docker node inspect $2 > /dev/null 2>&1
 }
 
 
@@ -198,22 +198,22 @@ if [ "$SWARM_MODE_NODE" == "yes" ]; then
 			echo "Main Swarm Manger Node has been created/started, hence new ip, thus reinitialzing swarm"
 			echo "First leaving previous swarm, if any"
 			docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
-				docker swarm leave --force > /dev/null 2>&1
+				sudo docker swarm leave --force > /dev/null 2>&1
 				echo "Initializing new swarm..."
-				docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1 
+				sudo docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null
 				echo "Swarm Initialized"
 			EOSSH
 		else 
 			# initialize swarm only if it is already not initialzed
 			echo "Main Swarm Manager has not been creted or restarded, hence now checking if swarm is already initialzed or not.."
 			docker-machine ssh "$MAIN_SWARM_MANAGER" <<- EOSSH
-				docker node ls | grep "Leader" > /dev/null 2>&1
+				sudo docker node ls 2> /dev/null | grep "Leader" > /dev/null 2>&1
 				if [ $? -ne 0 ]; 
 				then
 					# initialize swarm mode
 					echo "Swarm not initialzed, hence starting..."
 					echo "Initializing Swarm..."
-					docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null 2>&1
+					sudo docker swarm init --advertise-addr "$MAIN_SWARM_MANAGER_IP" > /dev/null
 					echo "Swarm Initialized"
 				else
 					echo "Swarm already initailized, moving forward"
@@ -233,8 +233,8 @@ if [ "$SWARM_MODE_NODE" == "yes" ]; then
 			echo "$NODE_NAME node joining swarm mananger..."
 			# first leave any previous swarm if at all
 			docker-machine ssh "$NODE_NAME" <<- EOSSH
-				docker swarm leave --force > /dev/null 2>&1
-				docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_IP":2377 > /dev/null 2>&1
+				sudo docker swarm leave --force > /dev/null 2>&1
+				sudo docker swarm join --token  "$SWARM_JOIN_TOKEN"  "$MAIN_SWARM_MANAGER_IP":2377 > /dev/null
 				echo "$NODE_NAME joined swarm manager"
 			EOSSH
 		
@@ -253,89 +253,111 @@ else
 fi
 
 
-echo "Configuring Each Node..."
-# install docker-compose in each node
-echo "[$NODE_NAME] - processing for swarm node..."
-(
-	docker-machine ssh "$NODE_NAME"  <<- EOSSH
-		# echo "[$CLUSTER_NODE_NAME] - Adding Dns Entry..."
-		# echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null 2>&1
-		# echo "[$CLUSTER_NODE_NAME] - dns entry added successfully"	
 
 
-		if ! which docker-compose > /dev/null 2>&1; then 
-			echo "[$NODE_NAME] - Installing docker-compose..."
-			sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
-			-o /usr/local/bin/docker-compose > /dev/null 2>&1; 
-			sudo chmod +x /usr/local/bin/docker-compose; 
-		else
-			echo "[$NODE_NAME] - docker-compose already installed, moving forward"
-		fi
-		
+if [ "$CONFIGURATION" == "yes"]; then
 
-		if ! which rexray > /dev/null 2>&1; then 
-			echo "[$NODE_NAME] - Installing Rex-Ray"
-			curl -sSL https://dl.bintray.com/emccode/rexray/install | sh > /dev/null 2>&1
-			echo "[$NODE_NAME] - Rex-Ray Installed"
+	echo "Configuring Each Node..."
+	# install docker-compose in each node
+	echo "[$NODE_NAME] - processing for swarm node..."
+	(
+		docker-machine ssh "$NODE_NAME"  <<- EOSSH
+			# echo "[$CLUSTER_NODE_NAME] - Adding Dns Entry..."
+			# echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf >/dev/null 2>&1
+			# echo "[$CLUSTER_NODE_NAME] - dns entry added successfully"	
+
+
+			if ! which docker-compose > /dev/null 2>&1; then 
+				echo "[$NODE_NAME] - Installing docker-compose..."
+				sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
+				-o /usr/local/bin/docker-compose > /dev/null 
+				sudo chmod +x /usr/local/bin/docker-compose
+			else
+				echo "[$NODE_NAME] - docker-compose already installed, moving forward"
+			fi
 			
-		else
-			echo "[$NODE_NAME] - Rex-Ray Already INstalled, moving forward"
-		fi
 
-		echo "[$NODE_NAME] - Configuring Rex-Ray"
-		sudo tee /etc/rexray/config.yml << EOF
-		rexray:
-		  logLevel: warn
-		libstorage:
-		  logging:
-		    level: warn
-		  service: virtualbox
-		  integration:
-		    volume:
-		      operations:
-		        create:
-		          default:
-		            size: 8
-		        mount:
-		          preempt: true
-		        unmount: 
-		          ignoreUsedCount: false
-		        path:
-		          cache:
-		            enabled: true
-		            async: true
-		virtualbox:
-		  endpoint: http://192.168.99.1:18083
-		  tls: true
-		  volumePath: /Users/Roy/VirtualBox/Volumes
-		  controllerName: SATA
-		  localMachineNameOrId: "$NODE_NAME"
-		EOF
-		echo "[$NODE_NAME] - Rex-Ray configured"
+			if ! which rexray > /dev/null 2>&1; then 
+				echo "[$NODE_NAME] - Installing Rex-Ray"
+				curl -sSL https://dl.bintray.com/emccode/rexray/install | sh
+				echo "[$NODE_NAME] - Rex-Ray Installed"
+				
+			else
+				echo "[$NODE_NAME] - Rex-Ray Already INstalled, moving forward"
+			fi
+
+			echo "[$NODE_NAME] - Configuring Rex-Ray"
+			sudo tee /etc/rexray/config.yml << EOF
+			rexray:
+			  logLevel: warn
+			libstorage:
+			  logging:
+			    level: warn
+			  service: virtualbox
+			  integration:
+			    volume:
+			      operations:
+			        create:
+			          default:
+			            size: 8
+			        mount:
+			          preempt: true
+			        unmount: 
+			          ignoreUsedCount: false
+			        path:
+			          cache:
+			            enabled: true
+			            async: true
+			virtualbox:
+			  endpoint: http://192.168.99.1:18083
+			  tls: true
+			  volumePath: /Users/Roy/VirtualBox/Volumes
+			  controllerName: SATA
+			  localMachineNameOrId: $NODE_NAME
+			EOF
+			echo "[$NODE_NAME] - Rex-Ray configured"
+			
+			echo "[$NODE_NAME] - Rex-Ray Restarting"
+			sudo rexray start > /dev/null
+			echo "[$NODE_NAME] - Rex-Ray Restarted Successfully"
+
+			echo "[$NODE_NAME] - processing done"
 		
-		echo "[$NODE_NAME] - Rex-Ray Restarting"
-		docker-machine ssh "$NODE_NAME" sudo rexray start > /dev/null 2>&1
-		echo "[$NODE_NAME] - Rex-Ray Restarted Successfully"
+		EOSSH
 
-		echo "[$NODE_NAME] - processing done"
-	
-	EOSSH
+		# echo "[$NODE_NAME] - Configuring Rex-Ray"
+		# docker-machine ssh "$NODE_NAME"  sudo tee /etc/rexray/config.yml < "$STORAGE_PROVISION_CONFIG_FILE" > /dev/null 2>&1
+		# echo "[$NODE_NAME] - Rex-Ray configured"
+		# echo "[$NODE_NAME] - Rex-Ray Restarting"
+		# docker-machine ssh "$NODE_NAME" sudo rexray start > /dev/null 2>&1
+		# echo "[$NODE_NAME] - Rex-Ray Restarted Successfully"
 
-	# echo "[$NODE_NAME] - Configuring Rex-Ray"
-	# docker-machine ssh "$NODE_NAME"  sudo tee /etc/rexray/config.yml < "$STORAGE_PROVISION_CONFIG_FILE" > /dev/null 2>&1
-	# echo "[$NODE_NAME] - Rex-Ray configured"
-	# echo "[$NODE_NAME] - Rex-Ray Restarting"
-	# docker-machine ssh "$NODE_NAME" sudo rexray start > /dev/null 2>&1
-	# echo "[$NODE_NAME] - Rex-Ray Restarted Successfully"
+		# echo "[$NODE_NAME] - processing done"
 
-	# echo "[$NODE_NAME] - processing done"
-
-) &
+	) &
 
 
-echo "Wating for configuration of nodes..."
-wait
-echo "configuration of all nodes completed"
+	echo "Wating for configuration of nodes..."
+	wait
+	echo "configuration of all nodes completed"
+
+else
+	echo "Configuration not required, moving forward"
+fi
+
+echo "Starting Virtualbox SOAP API to accept API requests from the REX-Ray service..."
+if pgrep -x vboxwebsrv > /dev/null; then
+	echo "Virutalbpx SOAP API Service already running, moving forward"
+else
+	echo "Strating..."
+	# VboxCommand="vboxwebsrv -H 0.0.0.0 -v"
+	# nohup $VboxCommand &
+	vboxwebsrv -H 0.0.0.0 -v -b
+	echo "Virtualbox SOAP API webservice started"
+fi
+
+
+
 
 echo "Provisioning Successful"
 
