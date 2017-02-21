@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+  master:
+    build: jenkins-master
+    volumes:
+      - data:${JENKINS_HOME_DIR:-/var/jenkins_home}
+    ports:
+      - "${JENKINS_SLAVE_PORT:-50000}:50000"
+      - "${JENKINS_MASTER_PORT:-8081}:8080"
+  # nginx:
+  #   build: jenkins-nginx
+  #   ports:
+  #     - "80:80"
+  #   links:
+  #     - master:jenkins-master
+  # slave:
+  #   build: jenkins-slave
+
+volumes:
+  data:
+    external:
+      name: ${JENKINS_DATA_VOLUME:-jenkins_data}
