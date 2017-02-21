@@ -10,7 +10,7 @@ if [ "$#" -eq 1 ]; then
 fi
 
 echo "[$NODE_NAME] - stopping node..."
-docker-machine stop "$NODE_NAME" > /dev/null 2>&1
+docker-machine stop "$NODE_NAME" > /dev/null
 echo "[$NODE_NAME] - node stopped succesfully"
 
 
