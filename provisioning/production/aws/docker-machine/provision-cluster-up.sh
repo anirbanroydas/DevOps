@@ -481,7 +481,7 @@ if [ "$CONFIGURATION" == "yes" ]; then
 				fi
 
 				echo "[$CLUSTER_NODE_NAME] - adding user ubuntu to group docker"
-				sudo usermod -aG docker ubuntu > /dev/null
+				sudo usermod -aG docker "$AWS_SSH_USER" > /dev/null
 				if [ $? -ne 0 ]; then 
 					echo "[$CLUSTER_NODE_NAME] - user ubuntu unable to be added to group docker"
 				else
