@@ -21,6 +21,6 @@ libstorage:
 virtualbox:
   endpoint: http://192.168.99.1:18083
   tls: true
-  volumePath: /Users/Roy/VirtualBox/Volumes
+  volumePath: <dev_machine_some_directory_accessible_throughout_all_nodes>
   controllerName: SATA
-  localMachineNameOrId: johnsnow-01
+  localMachineNameOrId: <node_name>
