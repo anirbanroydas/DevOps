@@ -22,6 +22,17 @@
 */**/nohup.out
 */*/nohup.out
 */nohup.out
+nohup.out
+
+# rex-ray config
+**/**/.config.yml
+**/*/.config.yml
+**/.config.yml
+*/**/.config.yml
+*/*/.config.yml
+*/.config.yml
+.config.yml
+
 
 # laravel specific 
 vendor/
