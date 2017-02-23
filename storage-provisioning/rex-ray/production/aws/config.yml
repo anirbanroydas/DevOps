@@ -1,0 +1,24 @@
+rexray:
+  logLevel: warn
+libstorage:
+  logging:
+    level: warn
+  service: ebs
+  integration:
+    volume:
+      operations:
+        create:
+          default:
+            size: 8
+        mount:
+          preempt: true
+        unmount: 
+          ignoreUsedCount: false
+        path:
+          cache:
+            enabled: true
+            async: true
+ebs:
+  accessKey: <aws_access_key>
+  secretKey: <aws_secret_key>
+  region: ap-south-1
