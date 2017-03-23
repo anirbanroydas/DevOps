@@ -253,9 +253,9 @@ else
 fi
 
 
+echo " config : $CONFIGURATION"
 
-
-if [ "$CONFIGURATION" == "yes"]; then
+if [ "$CONFIGURATION" == "yes" ]; then
 
 	echo "Configuring Each Node..."
 	# install docker-compose in each node
@@ -269,8 +269,7 @@ if [ "$CONFIGURATION" == "yes"]; then
 
 			if ! which docker-compose > /dev/null 2>&1; then 
 				echo "[$NODE_NAME] - Installing docker-compose..."
-				sudo curl -L "https://github.com/docker/compose/releases/download/1.10.0/docker-compose-$(uname -s)-$(uname -m)" \
-				-o /usr/local/bin/docker-compose > /dev/null 
+				sudo curl -L https://github.com/docker/compose/releases/download/"$DOCKER_COMPOSE_VERSION"/docker-compose-\$(uname -s)-\$(uname -m) -o /usr/local/bin/docker-compose > /dev/null
 				sudo chmod +x /usr/local/bin/docker-compose
 			else
 				echo "[$NODE_NAME] - docker-compose already installed, moving forward"
