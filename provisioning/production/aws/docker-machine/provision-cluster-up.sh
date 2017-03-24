@@ -43,7 +43,8 @@ fi
 # --amazonec2-retries	-	5
 
 
-export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+# export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+export MAIN_SWARM_MANAGER=prod-01
 echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
 export MAIN_SWARM_MANAGER_AWS_AZ=${AWS_ZONE_MANAGER[0]}
 echo "MAIN_SWARM_MANAGER_AWS_AZ : $MAIN_SWARM_MANAGER_AWS_AZ"
@@ -145,7 +146,7 @@ do
 	if [ $i -lt $MANAGER_COUNT ];
 	then
 		NODE_TYPE="Manager"
-		CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+		# CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
 		AWS_ZONE=${AWS_ZONE_MANAGER[$manager_index]}
 		AWS_TAGS="Name,${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))"
 		AWS_INSTANCE_TYPE=${AWS_INSTANCE_TYPES_MANAGER[$manager_index]}
@@ -153,12 +154,19 @@ do
 		manager_index=$((manager_index + 1))
 	else
 		NODE_TYPE="Worker"
-		CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+		# CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
 		AWS_ZONE=${AWS_ZONE_WORKER[$worker_index]}
 		AWS_TAGS="Name,${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))"
 		AWS_INSTANCE_TYPE=${AWS_INSTANCE_TYPES_WORKER[$worker_index]}
 		AWS_ROOT_SIZE=${AWS_ROOT_SIZES_WORKER[$worker_index]}
 		worker_index=$((worker_index + 1))
+	fi
+
+
+	if [ $i -gt 8 ]; then
+		CLUSTER_NODE_NAME=prod-$((i+1))
+	else
+		CLUSTER_NODE_NAME=prod-0$((i+1))
 	fi
 
 	# create the the swarm nodes
@@ -291,7 +299,8 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 	wait
 	echo "Security Group Udpated for Swarm"
 
-	export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+	# export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+	export MAIN_SWARM_MANAGER=prod-01
 	echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
 	export MAIN_SWARM_MANAGER_PRIVATE_IP=$(docker-machine inspect "$MAIN_SWARM_MANAGER" --format '{{json .Driver.PrivateIPAddress}}')
 	echo "Main Swarm Manager Private IP : $MAIN_SWARM_MANAGER_PRIVATE_IP"
@@ -372,15 +381,21 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 
 		if [ $i -lt $MANAGER_COUNT ];
 		then
-			CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+			# CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
 			AWS_ZONE=${AWS_ZONE_MANAGER[$manager_index]}
 			SWARM_JOIN_TOKEN=$SWARM_MANAGER_JOIN_TOKEN
 			manager_index=$((manager_index + 1))
 		else
-			CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+			# CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
 			AWS_ZONE=${AWS_ZONE_WORKER[$worker_index]}
 			SWARM_JOIN_TOKEN=$SWARM_WORKER_JOIN_TOKEN
 			worker_index=$((worker_index + 1))
+		fi
+
+		if [ $i -gt 8 ]; then
+			CLUSTER_NODE_NAME=prod-$((i+1))
+		else
+			CLUSTER_NODE_NAME=prod-0$((i+1))
 		fi
 
 		echo "[$CLUSTER_NODE_NAME] - Inspecting..."
@@ -453,13 +468,19 @@ if [ "$CONFIGURATION" == "yes" ]; then
 	# install docker-compose in each node
 	for i in $(seq 0 $((CLUSTER_SIZE-1)));
 	do
-		if [ $i -lt $MANAGER_COUNT ];
-		then
-			CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
-			manager_index=$((manager_index + 1))
+		# if [ $i -lt $MANAGER_COUNT ];
+		# then
+		# 	CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+		# 	manager_index=$((manager_index + 1))
+		# else
+		# 	CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+		# 	worker_index=$((worker_index + 1))
+		# fi
+
+		if [ $i -gt 8 ]; then
+			CLUSTER_NODE_NAME=prod-$((i+1))
 		else
-			CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
-			worker_index=$((worker_index + 1))
+			CLUSTER_NODE_NAME=prod-0$((i+1))
 		fi
 
 		echo "[$CLUSTER_NODE_NAME] - processing for swarm node..."
