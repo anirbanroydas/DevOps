@@ -11,13 +11,19 @@ worker_index=0
 for i in $(seq 0 $((CLUSTER_SIZE-1)));
 do
 
-	if [ $i -lt $MANAGER_COUNT ];
-	then
-		CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
-		manager_index=$((manager_index + 1))
+	# if [ $i -lt $MANAGER_COUNT ];
+	# then
+	# 	CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+	# 	manager_index=$((manager_index + 1))
+	# else
+	# 	CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+	# 	worker_index=$((worker_index + 1))
+	# fi
+
+	if [ $i -gt 8 ]; then
+		CLUSTER_NODE_NAME=prod-$((i+1))
 	else
-		CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
-		worker_index=$((worker_index + 1))
+		CLUSTER_NODE_NAME=prod-0$((i+1))
 	fi
 
 	echo "[$CLUSTER_NODE_NAME] - stopping and removing node..."
