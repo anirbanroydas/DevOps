@@ -60,7 +60,8 @@ source env_init.sh
 # fi
 
 
-export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+# export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+export MAIN_SWARM_MANAGER=dev-01
 echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
 export MAIN_SWARM_MANAGER_NEW="no"
 
@@ -70,7 +71,6 @@ export REMOVE="docker-machine rm --force -y "
 export START="docker-machine start "
 export STOP="docker-machine stop "
 export IP="docker-machine ip "
-
 
 
 function create_node() {
@@ -129,14 +129,19 @@ do
 	if [ $i -lt $MANAGER_COUNT ];
 	then
 		NODE_TYPE="Manager"
-		CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
-		manager_index=$((manager_index + 1))
+		# CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+		# manager_index=$((manager_index + 1))
 	else
 		NODE_TYPE="Worker"
-		CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
-		worker_index=$((worker_index + 1))
+		# CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+		# worker_index=$((worker_index + 1))
 	fi
 
+	if [ $i -gt 8 ]; then
+		CLUSTER_NODE_NAME=dev-$((i+1))
+	else
+		CLUSTER_NODE_NAME=dev-0$((i+1))
+	fi
 	# create the the swarm nodes
 	echo "[$CLUSTER_NODE_NAME ] - Checking if Swarm ${NODE_TYPE} Node exists or not..."
 	docker-machine ls -q | grep -w "$CLUSTER_NODE_NAME" > /dev/null 2>&1
@@ -184,16 +189,10 @@ echo "CREATE_SARM = $CREATE_SWARM"
 # proceed with swarm creation only if necesssary
 if [ "$CREATE_SWARM" == "yes" ]; then
 
-	export MAIN_SWARM_MANAGER=${CLUSTER_MANAGER_NAMES[0]}-01
+	export MAIN_SWARM_MANAGER=dev-01
 	echo "MAIN_SWARM_MANAGER : $MAIN_SWARM_MANAGER"
 	export MAIN_SWARM_MANAGER_IP=$(docker-machine ip  "$MAIN_SWARM_MANAGER")
 	echo "Main Swarm Manager IP : $MAIN_SWARM_MANAGER_IP"
-
-	# change docker machine env to main swarm manager
-	# change_docker_env_to "$MAIN_SWARM_MANAGER"
-
-	# check active machine status again
-	# echo "Active Machine : $(docker-machine active)"
 
 	# init swarm (need for service command); if not created
 	echo "Checking if Swarm is already initialized..."
@@ -242,13 +241,19 @@ if [ "$CREATE_SWARM" == "yes" ]; then
 
 		if [ $i -lt $MANAGER_COUNT ];
 		then
-			CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+			#CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
 			SWARM_JOIN_TOKEN=$SWARM_MANAGER_JOIN_TOKEN
-			manager_index=$((manager_index + 1))
+			#manager_index=$((manager_index + 1))
 		else
-			CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+			#CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
 			SWARM_JOIN_TOKEN=$SWARM_WORKER_JOIN_TOKEN
-			worker_index=$((worker_index + 1))
+			#worker_index=$((worker_index + 1))
+		fi
+
+		if [ $i -gt 8 ]; then
+			CLUSTER_NODE_NAME=dev-$((i+1))
+		else
+			CLUSTER_NODE_NAME=dev-0$((i+1))
 		fi
 
 		echo "[$CLUSTER_NODE_NAME] - Inspecting..."
@@ -304,13 +309,19 @@ if [ "$CONFIGURATION" == "yes" ]; then
 	for i in $(seq 0 $((CLUSTER_SIZE-1)));
 	do
 
-		if [ $i -lt $MANAGER_COUNT ];
-		then
-			CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
-			manager_index=$((manager_index + 1))
+		# if [ $i -lt $MANAGER_COUNT ];
+		# then
+		# 	CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
+		# 	manager_index=$((manager_index + 1))
+		# else
+		# 	CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
+		# 	worker_index=$((worker_index + 1))
+		# fi
+
+		if [ $i -gt 8 ]; then
+			CLUSTER_NODE_NAME=dev-$((i+1))
 		else
-			CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
-			worker_index=$((worker_index + 1))
+			CLUSTER_NODE_NAME=dev-0$((i+1))
 		fi
 
 		echo "[$CLUSTER_NODE_NAME] - Processing..."
