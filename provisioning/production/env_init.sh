@@ -18,10 +18,5 @@ echo "Worker Count: $WORKER_COUNT"
 echo "Storage provisioning config file: $STORAGE_PROVISION_CONFIG_FILE"
 
 
-source $ENV_PATH/$ENVIRONMENT/cluster-node-names
+# source $ENV_PATH/$ENVIRONMENT/cluster-node-names
 source $ENV_PATH/$ENVIRONMENT/open_ports
-
-echo "Random Open Ports for debug pupose"
-echo "Open Ports TCP Internet [2]: ${OPEN_PORTS_TCP_INTERNET[2]}"
-echo "Open Ports TCP SWARM [1]: ${OPEN_PORTS_TCP_SWARM[1]}"
-echo "Open Ports UDP SWARM [0]: ${OPEN_PORTS_UDP_SWARM[0]}"
