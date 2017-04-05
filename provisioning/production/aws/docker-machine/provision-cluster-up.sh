@@ -58,7 +58,7 @@ export STOP="docker-machine stop "
 
 
 function create_node() {
-   
+
 	local CREATE="docker-machine create \
    		--amazonec2-zone $1 \
    		--amazonec2-tags $2 \
@@ -143,12 +143,20 @@ for i in $(seq 0 $((CLUSTER_SIZE-1)));
 do
 	NODE_TYPE="Worker"
 	
+
+	if [ $i -gt 8 ]; then
+		CLUSTER_NODE_NAME=prod-$((i+1))
+	else
+		CLUSTER_NODE_NAME=prod-0$((i+1))
+	fi
+
+
 	if [ $i -lt $MANAGER_COUNT ];
 	then
 		NODE_TYPE="Manager"
 		# CLUSTER_NODE_NAME=${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))
 		AWS_ZONE=${AWS_ZONE_MANAGER[$manager_index]}
-		AWS_TAGS="Name,${CLUSTER_MANAGER_NAMES[$manager_index]}-0$((i+1))"
+		AWS_TAGS="Name,$CLUSTER_NODE_NAME"
 		AWS_INSTANCE_TYPE=${AWS_INSTANCE_TYPES_MANAGER[$manager_index]}
 		AWS_ROOT_SIZE=${AWS_ROOT_SIZES_MANAGER[$manager_index]}
 		manager_index=$((manager_index + 1))
@@ -156,18 +164,14 @@ do
 		NODE_TYPE="Worker"
 		# CLUSTER_NODE_NAME=${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))
 		AWS_ZONE=${AWS_ZONE_WORKER[$worker_index]}
-		AWS_TAGS="Name,${CLUSTER_WORKER_NAMES[$worker_index]}-0$((i+1))"
+		AWS_TAGS="Name,$CLUSTER_NODE_NAME"
 		AWS_INSTANCE_TYPE=${AWS_INSTANCE_TYPES_WORKER[$worker_index]}
 		AWS_ROOT_SIZE=${AWS_ROOT_SIZES_WORKER[$worker_index]}
 		worker_index=$((worker_index + 1))
 	fi
 
 
-	if [ $i -gt 8 ]; then
-		CLUSTER_NODE_NAME=prod-$((i+1))
-	else
-		CLUSTER_NODE_NAME=prod-0$((i+1))
-	fi
+	
 
 	# create the the swarm nodes
 	echo "[$CLUSTER_NODE_NAME] - Checking if Swarm ${NODE_TYPE} Node exists or not..."
@@ -222,10 +226,9 @@ echo "Wating for cluster node creation..."
 wait
 echo "Cluster Nodes Created"
 
-# list the cluster machines
-echo "Current Docker Hosts:"
-docker-machine ls
 
+
+echo "Machine Provisioning and configuration Begins.."
 
 # update the security group for ssl traffic
 echo "[$AWS_SECURITY_GROUP] Updating security group for Internet"
@@ -462,7 +465,7 @@ manager_index=0
 worker_index=0
 
 
-if [ "$CONFIGURATION" == "yes" ]; then
+if [ "$CONFIGURATION" = "yes" ]; then
 
 	echo "Configuring Each Node..."
 	# install docker-compose in each node
@@ -481,6 +484,13 @@ if [ "$CONFIGURATION" == "yes" ]; then
 			CLUSTER_NODE_NAME=prod-$((i+1))
 		else
 			CLUSTER_NODE_NAME=prod-0$((i+1))
+		fi
+
+		echo "[$CLUSTER_NODE_NAME] - Adding ssh keys to known_hosts"
+		server_ip=$(docker-machine ip "$CLUSTER_NODE_NAME")
+		ssh-keyscan -H "$server_ip" >> ~/.ssh/known_hosts > /dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			echo "[$CLUSTER_NODE_NAME] - Unable to add ssh key to known_hosts"
 		fi
 
 		echo "[$CLUSTER_NODE_NAME] - processing for swarm node..."
@@ -548,8 +558,14 @@ if [ "$CONFIGURATION" == "yes" ]; then
 	echo "configuration of all nodes completed"
 
 else
+
 	echo "Configuration not required, moving forward"
+	
 fi
 
 
 echo "Provisioning Successful"
+
+# list the cluster machines
+echo "Current Docker Hosts:"
+docker-machine ls
