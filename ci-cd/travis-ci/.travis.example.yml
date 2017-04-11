@@ -1,0 +1,76 @@
+sudo: required
+
+language: python # or any language or your choice like node, php, ruby, go
+
+python:
+  - '3.6' # version of the language you want to run your tests and app on, you can have multiple versions
+
+services:
+  - docker # build environment have access to docker which can help you run docker commands
+
+env:
+  global: # add global environment variables
+    - secure: "some_encrytpted_text" # encrypte confidential data in secret variables using the travis cli
+    - secure: "another_secret_encrypted_text" # $ travis encrypte ENV_VAR=mysecret
+    - STAGING_RESULT: false
+    - DEPLOY_PRODUCTION: nope
+    - DEPLOY_IDENTIDOCK_IMAGE_TAG: master
+    - DOCKER_COMPOSE_VERSION: 1.11.2
+    - DOCKER_VERSION: 17.03.0-ce
+
+before_install: # install and configure system before running your test scripts
+  - sudo apt-get -qq update
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-engine
+  - sudo docker --version
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+  - which docker-compose
+  - docker-compose --version
+
+install: # After pre installing important package, install other important softwares, libraries that may help in test or deployment
+  - pip install coveralls
+
+script: # run your test scripts, directly or via tools like makefile, npm scripts
+  - make test-unit
+  - make test-component
+
+after_success: # this step will be run after your script return with exit code 0
+  - coverage combine --append && coveralls
+  - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then # this will only run if the condition is satisfied
+        make build-tag-push;
+    fi
+
+before_deploy: # decrypt the encrypted file, mainly used to encrypte your private ssh key
+  - openssl aes-256-cbc -K $encrypted_18064ed45155_key -iv $encrypted_18064ed45155_iv -in travis_deploy_rsa.enc -out /tmp/travis_deploy_rsa -d
+  - eval "$(ssh-agent -s)" #start the ssh agent on travis vm
+  - chmod 600 /tmp/travis_deploy_rsa # change permissionand add to ssh agent
+  - ssh-add /tmp/travis_deploy_rsa
+  - source scripts/add_known_hosts.sh # run the script to add known hosts to your travis vm
+  # - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
+  # make deploy DEPLOY_ENVIRONMENT=staging && make test-e2e;
+  # fi
+
+deploy: # run the deploymnet script after the before_deploy is successful 
+  provider: script
+  skip_cleanup: true
+  script: make deploy # run a script directly or by using tools like makefile, npm scritps etc.
+  on:
+    branch: master # only run when pushed to master branch
+    condition: $TRAVIS_PULL_REQUEST = false # also when its not apull request
+    # tags: true
+
+notifications: # notify about the build, success or failure
+  email: # email notification
+    recipients:
+      - anirban.nick@gmail.com
+    on_success: never # dont send when build is successful
+    on_failure: always # send alwasy when build is failed
+  
+  slack:    
+    rooms:
+      - secure: secret_slack_integration_token # integrated travis in your slack apps and encrypt the integration token as mentioned above in environment variables section
+    on_success: always # always send on success
+    on_failure: always # always send even on failure
+
