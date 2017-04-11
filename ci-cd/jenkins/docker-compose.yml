@@ -1,10 +1,13 @@
 version: "3"
 
 services:
+  # jenkins-data:
+  #   build: jenkins-data
   master:
     build: jenkins-master
     volumes:
       - data:${JENKINS_HOME_DIR:-/var/jenkins_home}
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "${JENKINS_SLAVE_PORT:-50000}:50000"
       - "${JENKINS_MASTER_PORT:-8081}:8080"
