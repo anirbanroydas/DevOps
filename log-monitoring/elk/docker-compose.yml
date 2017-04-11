@@ -1,0 +1,57 @@
+version: "2"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.3.0
+    # If you need to access ES directly, just uncomment those lines.
+    #ports:
+    #  - "9200:9200"
+    #  - "9300:9300"
+    environment:
+      cluster.name: "elasticsearch-cluster-elaster"
+      bootstrap.memory_lock: true
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    labels:
+      io.aroyd.service.container.name: "elasticsearch"
+      io.aroyd.servcie.container.env: "production"
+    deploy:
+      placement:
+        constraints:
+          - engine.labels.io.aroyd.machine.aws.az == b
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: pause
+        monitor: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    volumes:
+      - elasticsearch_data_volume:${ELASTICSEARCH_DATA_DIR:-/usr/share/elasticsearch/data}
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:5.3.0
+    command: [-f, /usr/share/logstash/config/logstash.conf]
+    volumes:
+      - ./logstash.comf:/usr/share/logstash/config/logstash.conf
+    ports:
+      - "12201:12201/udp"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.3.0
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+
+
+volumes:
+  elasticsearch_data_volume:
+    driver: rexray
+    driver_opts:
+      volumeType: "gp2"
+      size: "4"
+      availabilityZone: "ap-south-1b"
+
